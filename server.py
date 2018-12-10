@@ -22,106 +22,76 @@ socket_server.bind('ec2-54-164-205-229.compute-1.amazonaws.com')
 round_robin = 0
 
 
-def main():
+def writeToDatabase(queue, message):
+    # Round robin select the next Influx instance to use
+    current_db = queue.popleft()
+    queue.append(current_db)
 
-    while round_robin < len(influx_ip):
+    # Parse the message
+    sender, receiver, msg, sg = message.split(" ")
 
-        message = socket_server.recv()
-        sender, receiver, msg, sg = message.split(" ")
+    # If this is a one-to-one message
+    if sg == '0':
 
-        if sg == '0':
+        # Write this message in the reciever's mailbox
+        sender_mailbox = [{
+            'measurement': 'msgs',
+            'fields': {
+                'from': sender,
+                'mailbox': sender,
+                'msg': msg,
+                'chatname': receiver
+            }
+        }]
 
-            sender_mailbox = [{
+        # Write this message in the sender's mailbox
+        receiver_mailbox = [{
+            'measurement': 'msgs',
+            'fields': {
+                'from': sender,
+                'mailbox': receiver,
+                'msg': msg,
+                'chatname': sender
+            }
+        }]
+
+        current_db.write_points(sender_mailbox)
+        current_db.write_points(receiver_mailbox)
+
+    # This is a group chat
+    else:
+
+        # Find all the members in this group
+        group = select('db': 'messenger').filter(exp: {'_measurement' == 'groups' and '_fields' == receiver})
+        members = group['members'].split(',')
+        
+        # Write this message in each of the members' mailboxes
+        for i in members:
+            current_db.write_points([{
                 'measurement': 'msgs',
                 'fields': {
-                    'from': sender,
-                    'mailbox': sender,
-                    'msg': msg,
+                    'from': sender
+                    'mailbox': i
+                    'msg': msg
                     'chatname': receiver
                 }
-            }]
+            }])
 
-            receiver_mailbox = [{
-                'measurement': 'msgs',
-                'fields': {
-                    'from': sender,
-                    'mailbox': receiver,
-                    'msg': msg,
-                    'chatname': sender
-                }
-            }]
 
-            if round_robin == 0:
-                mydb1.write_points(sender_mailbox)
-                mydb1.write_points(receiver_mailbox)
-                round_robin = round_robin + 1
+def sendMessage():
+    pass
 
-            elif round_robin == 1:
-                mydb2.write_points(sender_mailbox)
-                mydb2.write_points(receiver_mailbox)
-                round_robin = round_robin + 1
-            else:
-                mydb3.write_points(sender_mailbox)
-                mydb3.write_points(receiver_mailbox)
-                round_robin = 0
 
-        elif sg == '1':
+def main():
 
-            group = select(db: 'messenger')
-            .filter(exp: {'_measurement' == 'groups' and '_fields' == receiver})
+    # Create a queue of our Influx instances
+    queue = deque(influx_ip)
 
-            members = group['members'].split(',')
-
-            if round_robin == 0:
-
-                mydb1.write_points(sender_mailbox)
-
-                for i in members:
-                    mydb1.write_points([{
-                        'measurement': 'msgs',
-                        'fields': {
-                            'from': sender
-                            'mailbox': i
-                            'msg': msg
-                            'chatname': receiver
-                        }
-                    }])
-
-                round_robin = round_robin + 1
-
-            elif round_robin == 1:
-
-                mydb2.write_points(sender_mailbox)
-
-                for i in members:
-                    mydb2.write_points([{
-                        'measurement': 'msgs',
-                        'fields': {
-                            'from': sender
-                            'mailbox': i
-                            'msg': msg
-                            'chatname': receiver
-                        }
-                    }])
-
-                round_robin = round_robin + 1
-
-            else:
-
-                mydb3.write_points(sender_mailbox)
-
-                for i in members:
-                    mydb3.write_points([{
-                        'measurement': 'msgs',
-                        'fields': {
-                            'from': sender
-                            'mailbox': i
-                            'msg': msg
-                            'chatname': receiver
-                        }
-                    }])
-
-                round_robin = 0
+    # Each time we recieve a message, write it to DB and send out to receivers
+    while True:
+        message = socket_server.recv()
+        writeToDatabase(queue, messaage)
+        sendMessage()
 
 
 if __name__ == "__main__":
