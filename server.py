@@ -52,7 +52,7 @@ def main():
                 mydb1.write_points(receiver_mailbox)
                 round_robin = round_robin + 1
 
-            elif cnt == 1:
+            elif round_robin == 1:
                 mydb2.write_points(sender_mailbox)
                 mydb2.write_points(receiver_mailbox)
                 round_robin = round_robin + 1
@@ -83,7 +83,9 @@ def main():
                         }
                     }])
 
-            elif cnt == 1:
+                round_robin = round_robin + 1    
+
+            elif round_robin == 1:
                 
                 mydb2.write_points(sender_mailbox)
                 
