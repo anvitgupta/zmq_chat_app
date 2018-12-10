@@ -32,6 +32,7 @@ else:
 groups = []
 while True:
     resp = sub_socket.recv_json()
+    resp = resp[0] if type(resp) == list else resp
     if resp.get("topic") != username:
         continue
 
