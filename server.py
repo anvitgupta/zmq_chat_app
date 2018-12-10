@@ -1,5 +1,6 @@
 import sys
 import zmq
+from collections import deque
 from influxdb.client import InfluxDBClientError
 from influxdb import client as influxdb
 
@@ -18,10 +19,11 @@ mydb3 = influxdb.InfluxDBClient(
 context = zmq.Context()
 # The socket used to listen for incoming messages
 reply_socket = context.socket(zmq.REP)
-socket_server_sub.bind('ec2-54-164-205-229.compute-1.amazonaws.com:9000')
+reply_socket.bind("tcp://*:9000")
 
 # The socket used to send out messages
-socket_server_pub = context.socket(zmq.PUB)
+pub_socket = context.socket(zmq.PUB)
+pub_socket.bind("tcp://*:9001")
 
 
 def createUser(message, current_db):
@@ -31,32 +33,40 @@ def createUser(message, current_db):
 
 
 def createGroup(message, current_db):
-    print "Creating a group"
-    parts = message.split("|")
-    group_members = '|'.join(map(str, parts[2, :]))
-    new_group = [{
+    print "Creating a group..."
+    group_name = message["name"]
+    members = message["members"]
+    for member in members:
+        new_group = [{
             'measurement': 'groups',
             'fields': {
-                'id': str(parts[1]),
-                'members': group_members,
+                'id': group_name,
+                'members': member,
             }
         }]
-    current_db.write_points(new_group)
+        current_db.write_points(new_group)
 
-    for member in group_members:
-                if member != sender
-                    message = '|'.join(map(str, list(filter(lambda x: x != member, group)))) 
-                    topic = "/" + str(member)
-                    socket_server_pub.send("%d %d" % (topic, message))
+    for member in members:
+        if member != members[0]:
+            topic = "/" + str(member)
+            message = [{
+                'type': 'NEW_GROUP',
+                'members': members.filter(lambda x: x != member),
+                'name': group_name
+            }]
+            socket_server_pub.send_json(topic, message)
 
 
 def writeToDatabase(message, current_db):
 
     # Parse the message
-    action, sender, receiver, msg, sg = message.split(" ")
+    sender = message["sender"]
+    receiver = message["receiver"]
+    message = message["message"]
+    isGroup = message["isGroup"]
 
     # If this is a one-to-one message
-    if sg == '0':
+    if not isGroup:
 
         # Write this message in the reciever's mailbox
         sender_mailbox = [{
@@ -87,36 +97,41 @@ def writeToDatabase(message, current_db):
     else:
 
         # Find all the members in this group
-        group = list(current_db.query("SELECT * from msg_groups WHERE id='" + str(receiver) + "'").get_points())
+        group_members = list(current_db.query("SELECT * from msg_groups WHERE id='" + str(receiver) + "'").get_points())
 
         # Write this message in each of the members' mailboxes
-        for i in group.split("|"):
+        for mem in group_members:
             current_db.write_points([{
                 'measurement': 'msgs',
                 'fields': {
-                    'from': sender
-                    'mailbox': i
-                    'msg': msg
+                    'from': sender,
+                    'mailbox': mem,
+                    'msg': msg,
                     'chatname': receiver
                 }
-            }])    
+            }])
 
 
 def sendMessage(message, current_db):
-    parts = message.split("|")
+
+    # Parse the message
+    sender = message["sender"]
+    receiver = message["receiver"]
+    message = message["message"]
+    isGroup = message["isGroup"]
+
     topics = []
-    message = parts[3]
     # If a single message
-    if message[:-1] == '0':
-        print "One to one message"
-        topics.append("/" + str(parts[2]))
+    if not isGroup:
+        print "Sending a one-to-one message..."
+        topics.append("/" + str(receiver))
     # If a group message
     else:
-        print "Group message"
-        group = list(current_db.query("SELECT * from msg_groups WHERE id='" + str(receiver) + "'").get_points())
-        for i in group.split("|"):
+        print "Sending a group message..."
+        group_members = list(current_db.query("SELECT * from msg_groups WHERE id='" + str(receiver) + "'").get_points())
+        for member in group_members:
             topics.append(i)
-        
+
     for topic in topics:
         pub_socket.send("%d %d" % (topic, message))
 
@@ -126,23 +141,24 @@ def main():
 
     # Create a queue of our Influx instances
     queue = deque([mydb1, mydb2, mydb3])
-    
+
     while True:
         # Round robin select the next Influx instance to use
         current_db = queue.popleft()
         queue.append(current_db)
 
-        message = reply_socket.recv()
+        message = reply_socket.recv_json()
         print "Recieved a message: " + str(message)
 
-        if str(message[0:5]) == "CREATE":
+        if message["type"] == "CREATE_USER":
             createUser(message, current_db)
-        elif str(message[0:5]) == "MAKE":
+        elif message["type"] == "CREATE_GROUP":
             createGroup(message, current_db)
         else:
             writeToDatabase(message, current_db)
             sendMessage(message, current_db)
-        reply_socket.send("Message: " + message + "recieved.")
+        reply_socket.send_json({"success": True})
+
 
 if __name__ == "__main__":
     main()
