@@ -7,7 +7,7 @@ influx_ip = ['ec2-52-23-246-145.compute-1.amazonaws.com',
              'ec2-52-90-226-153.compute-1.amazonaws.com',
              'ec2-52-200-205-8.compute-1.amazonaws.com']
 
-# set up Influx database
+# set up Influx databases
 mydb1 = influxdb.InfluxDBClient(
     influx_ip[0], 8086, 'admin', 'dubey', 'messenger')
 mydb2 = influxdb.InfluxDBClient(
@@ -16,10 +16,10 @@ mydb3 = influxdb.InfluxDBClient(
     influx_ip[2], 8086, 'admin', 'dubey', 'messenger')
 
 context = zmq.Context()
-socket_server = context.socket(zmq.REP)
-socket_server.bind('ec2-54-164-205-229.compute-1.amazonaws.com')
+# The socket used to listen for incoming messages
+socket_server_sub = context.socket(zmq.SUB)
+socket_server_sub.bind('ec2-54-164-205-229.compute-1.amazonaws.com')
 
-round_robin = 0
 
 
 def writeToDatabase(queue, message):
@@ -77,21 +77,22 @@ def writeToDatabase(queue, message):
                 }
             }])
 
-
-def sendMessage():
-    pass
-
+def sendMessage(message):
+    pub_socket = context.socket(zmq.PUB)
+    sender, receiver, msg, sg = message.split(" ")
+    pub_socket.bind("\" + str(receiver))
+    pub_socket.send("%d %d" % (sender, message))
 
 def main():
 
     # Create a queue of our Influx instances
-    queue = deque(influx_ip)
+    queue = deque([mydb1, mydb2, mydb3])
 
     # Each time we recieve a message, write it to DB and send out to receivers
     while True:
-        message = socket_server.recv()
+        message = socket_server_sub.recv()
         writeToDatabase(queue, messaage)
-        sendMessage()
+        sendMessage(message)
 
 
 if __name__ == "__main__":

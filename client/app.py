@@ -4,7 +4,7 @@ import zmq
 SERVER_IP = "ec2-54-164-205-229.compute-1.amazonaws.com"
 
 if len(sys.argv) < 1:
-    sys.exit("Must provide a username in order to connect to Messenger.")
+    sys.exit("Must provide a username in order to connect to Dark Messenger.")
 
 user_id = sys.argv[1]
 PORT = "5555"
