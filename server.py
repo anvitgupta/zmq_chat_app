@@ -21,7 +21,6 @@ socket_server.bind('ec2-54-164-205-229.compute-1.amazonaws.com')
 
 round_robin = 0
 
-<<<<<<< Updated upstream
 
 def main():
 
@@ -123,99 +122,6 @@ def main():
                     }])
 
                 round_robin = 0
-=======
-def writeToDatabase():
-    if sg == '0':
-        sender_mailbox = [{
-                'measurement': 'msgs',
-                'fields': {
-                    'from': sender
-                    'mailbox': sender
-                    'msg': msg
-                    'chatname': receiver
-                }
-        }]
-            
-        receiver_mailbox = [{
-                'measurement': 'msgs',
-                'fields': {
-                    'from': sender
-                    'mailbox': receiver
-                    'msg': msg
-                    'chatname': sender
-                }
-        }]
-
-        if round_robin == 0:
-            mydb1.write_points(sender_mailbox)
-            mydb1.write_points(receiver_mailbox)
-            round_robin = round_robin + 1
-
-        elif round_robin == 1:
-            mydb2.write_points(sender_mailbox)
-            mydb2.write_points(receiver_mailbox)
-            round_robin = round_robin + 1
-        else:
-            mydb3.write_points(sender_mailbox)
-            mydb3.write_points(receiver_mailbox)
-            round_robin = 0
-        
-    else :
-        group = select(db: 'messenger').filter(exp:{'_measurement' == 'groups' and '_fields' == receiver})
-        members = group['members'].split(',')        
-
-        if round_robin == 0:
-            for i in members:
-                mydb1.write_points([{
-                    'measurement': 'msgs',
-                    'fields': {
-                        'from': sender
-                        'mailbox': i
-                        'msg': msg
-                        'chatname': receiver
-                    }
-                }])
-                round_robin = round_robin + 1    
-
-        elif round_robin == 1:
-            for i in members:
-                mydb2.write_points([{
-                    'measurement': 'msgs',
-                    'fields': {
-                        'from': sender
-                        'mailbox': i
-                        'msg': msg
-                        'chatname': receiver
-                    }
-                }])
-
-            round_robin = round_robin + 1
-
-        else:
-            for i in members:
-                mydb3.write_points([{
-                    'measurement': 'msgs',
-                    'fields': {
-                        'from': sender
-                        'mailbox': i
-                        'msg': msg
-                        'chatname': receiver
-                    }
-                }])
-
-            round_robin = 0
-
-
-
-
-def main():
-
-    while round_robin < len(influx_ip):
-        
-        message = socket_server.recv()
-        sender, receiver, msg, sg = message.split(" ")
-        writeToDatabase():
->>>>>>> Stashed changes
 
 
 if __name__ == "__main__":
