@@ -27,9 +27,11 @@ socket_server_pub = context.socket(zmq.PUB)
 def createUser(message, current_db):
     # topic_name = message[7, :]
     # topics.append(topic_name)
+    print "Adding a user"
 
 
 def createGroup(message, current_db):
+    print "Creating a group"
     parts = message.split("|")
     group_members = '|'.join(map(str, parts[2, :]))
     new_group = [{
@@ -85,11 +87,10 @@ def writeToDatabase(message, current_db):
     else:
 
         # Find all the members in this group
-        group = list(current_db.query("SELECT * from groups WHERE id='" + str(receiver) + "'").get_points())
-        members = group['members'].split('|')
+        group = list(current_db.query("SELECT * from msg_groups WHERE id='" + str(receiver) + "'").get_points())
 
         # Write this message in each of the members' mailboxes
-        for i in members:
+        for i in group.split("|"):
             current_db.write_points([{
                 'measurement': 'msgs',
                 'fields': {
@@ -98,10 +99,7 @@ def writeToDatabase(message, current_db):
                     'msg': msg
                     'chatname': receiver
                 }
-            }])
-            
-            
-        
+            }])    
 
 
 def sendMessage(message, current_db):
@@ -110,12 +108,13 @@ def sendMessage(message, current_db):
     message = parts[3]
     # If a single message
     if message[:-1] == '0':
+        print "One to one message"
         topics.append("/" + str(parts[2]))
     # If a group message
     else:
-        result_set = current_db.query('SELECT * from groups WHERE id=' + str(receiver))
-        # TODO: Do a DB lookup for members of group
-        for i in topics:
+        print "Group message"
+        group = list(current_db.query("SELECT * from msg_groups WHERE id='" + str(receiver) + "'").get_points())
+        for i in group.split("|"):
             topics.append(i)
         
     for topic in topics:
@@ -134,6 +133,7 @@ def main():
         queue.append(current_db)
 
         message = reply_socket.recv()
+        print "Recieved a message: " + str(message)
 
         if str(message[0:5]) == "CREATE":
             createUser(message, current_db)
