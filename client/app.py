@@ -3,12 +3,12 @@ import zmq
 
 SERVER_IP = "ec2-54-164-205-229.compute-1.amazonaws.com"
 
-if len(sys.argv) < 1:
+if len(sys.argv) < 2:
     sys.exit("Must provide a username in order to connect to Dark Messenger.")
 
 username = sys.argv[1]
 PORT = "9000"
-if len(sys.argv) > 2:
+if len(sys.argv) > 3:
     PORT = sys.argv[2]
 PORT = int(PORT)
 

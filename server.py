@@ -1,9 +1,6 @@
-import sys
 import zmq
 import time
-import random
 from collections import deque
-from influxdb.client import InfluxDBClientError
 from influxdb import client as influxdb
 
 print "A"
@@ -18,7 +15,7 @@ mydb2 = influxdb.InfluxDBClient(
     influx_ip[1], 8086, 'admin', 'dubey', 'messenger')
 mydb3 = influxdb.InfluxDBClient(
     influx_ip[2], 8086, 'admin', 'dubey', 'messenger')
-print "B l"
+print "B"
 
 context = zmq.Context()
 # The socket used to listen for incoming messages
@@ -32,8 +29,6 @@ print "D"
 
 
 def createUser(message, current_db):
-    # topic_name = message[7, :]
-    # topics.append(topic_name)
     print "Adding a user"
 
 
@@ -53,7 +48,6 @@ def createGroup(message, current_db):
 
     for member in members:
         if member != members[0]:
-            topic = "/" + str(member)
             message = [{
                 'topic': member,
                 'type': 'NEW_GROUP',
@@ -70,11 +64,13 @@ def writeToDatabase(message, isGroup, current_db):
     recipient = message["recipient"]
     msg = message["msg"]
 
-    # If this is a one-to-one message
+    mailbox_entries = []
+
+    # If this is a direct message
     if not isGroup:
 
-        # Write this message in the reciever's mailbox
-        sender_mailbox = [{
+        # Write this message in the sender's mailbox
+        mailbox_entries.append({
             'measurement': 'msgs',
             'fields': {
                 'from': sender,
@@ -82,10 +78,10 @@ def writeToDatabase(message, isGroup, current_db):
                 'msg': msg,
                 'chatname': recipient
             }
-        }]
+        })
 
-        # Write this message in the sender's mailbox
-        receiver_mailbox = [{
+        # Write this message in the recipient's mailbox
+        mailbox_entries.append({
             'measurement': 'msgs',
             'fields': {
                 'from': sender,
@@ -93,21 +89,17 @@ def writeToDatabase(message, isGroup, current_db):
                 'msg': msg,
                 'chatname': sender
             }
-        }]
-
-        current_db.write_points(sender_mailbox)
-        current_db.write_points(receiver_mailbox)
+        })
 
     # This is a group chat
     else:
-
         # Find all the members in this group
-        print current_db
         group_members = current_db.query(
             "SELECT member from msg_groups WHERE id='" + str(recipient) + "'").get_points()
+
         # Write this message in each of the members' mailboxes
         for val in group_members:
-            current_db.write_points([{
+            mailbox_entries.append({
                 'measurement': 'msgs',
                 'fields': {
                     'from': sender,
@@ -115,7 +107,9 @@ def writeToDatabase(message, isGroup, current_db):
                     'msg': msg,
                     'chatname': recipient
                 }
-            }])
+            })
+
+    current_db.write_points(mailbox_entries)
 
 
 def sendMessage(message, isGroup, current_db):
@@ -127,9 +121,9 @@ def sendMessage(message, isGroup, current_db):
     msg = message["msg"]
 
     messages = []
-    # If a single message
+    # If a direct message
     if not isGroup:
-        print "Sending a one-to-one message..."
+        print "Sending a direct message..."
         message = {
             'topic': recipient,
             'type': 'NEW_DIRECT_MESSAGE',
@@ -181,13 +175,12 @@ def main():
         elif message["type"] == "SEND_GROUP_MESSAGE":
             sendMessage(message, True, current_db)
         else:
-            print "Fuck"
+            print "failed to do something"
             reply_socket.send_json({"success": False})
             continue
 
         reply_socket.send_json({"success": True})
 
-        pub_socket.send_json({"topic": "black"})
         time.sleep(1)
         pub_socket.send_json({"topic": "varun"})
 
