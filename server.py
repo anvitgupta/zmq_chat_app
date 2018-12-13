@@ -28,14 +28,14 @@ pub_socket.bind("tcp://*:9001")
 print "D"
 
 
-def createUser(message, current_db):
+def createUser(command, current_db):
     print "Adding a user"
 
 
-def createGroup(message, current_db):
+def createGroup(command, current_db):
     print "Creating a group..."
-    group_name = message["name"]
-    members = message["members"]
+    group_name = command["name"]
+    members = command["members"]
     for member in members:
         new_group = [{
             'measurement': 'msg_groups',
@@ -57,12 +57,7 @@ def createGroup(message, current_db):
             pub_socket.send_json(message)
 
 
-def writeToDatabase(message, isGroup, current_db):
-
-    # Parse the message
-    sender = message["sender"]
-    recipient = message["recipient"]
-    msg = message["msg"]
+def writeToDatabase(sender, recipient, msg, isGroup, current_db):
 
     mailbox_entries = []
 
@@ -112,13 +107,14 @@ def writeToDatabase(message, isGroup, current_db):
     current_db.write_points(mailbox_entries)
 
 
-def sendMessage(message, isGroup, current_db):
-    writeToDatabase(message, isGroup, current_db)
+def sendMessage(command, isGroup, current_db):
 
-    # Parse the message
-    sender = message["sender"]
-    recipient = message["recipient"]
-    msg = message["msg"]
+    # Parse the command
+    sender = command["sender"]
+    recipient = command["recipient"]
+    msg = command["msg"]
+
+    writeToDatabase(sender, recipient, msg, isGroup, current_db)
 
     messages = []
     # If a direct message
@@ -164,7 +160,7 @@ def main():
         queue.append(current_db)
 
         message = reply_socket.recv_json()
-        print "Recieved a message: " + str(message)
+        print "Received a message: " + str(message)
 
         if message["type"] == "CREATE_USER":
             createUser(message, current_db)
@@ -175,7 +171,7 @@ def main():
         elif message["type"] == "SEND_GROUP_MESSAGE":
             sendMessage(message, True, current_db)
         else:
-            print "failed to do something"
+            print "Invalid command type specified."
             reply_socket.send_json({"success": False})
             continue
 
