@@ -164,6 +164,8 @@ def main():
     # Create a queue of our Influx instances
     queue = deque([mydb1, mydb2, mydb3])
 
+    send = True
+
     while True:
         # Round robin select the next Influx instance to use
         current_db = queue.popleft()
@@ -189,8 +191,11 @@ def main():
 
         pub_socket.send_json({"topic": "black"})
         time.sleep(1)
-        pub_socket.send_json({"topic": "varun"})
+        if send:
+            pub_socket.send_json({"topic": "varun"})
+            send = False
 
 
 if __name__ == "__main__":
     main()
+
