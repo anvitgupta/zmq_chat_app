@@ -105,8 +105,7 @@ def writeToDatabase(sender, recipient, msg, isGroup, current_db):
             })
 
         print mailbox_entries
-        for entry in mailbox_entries:
-            current_db.write(entry)
+        current_db.write_points(mailbox_entries)
 
 
 def sendMessage(command, isGroup, current_db):
