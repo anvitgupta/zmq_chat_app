@@ -26,14 +26,41 @@
 
 * Server: Contains logic to create a user, create a group, write to InfluxDB, and send messages between clients. 
 
-* InfluxDB cluster: Resilient design made up of three meta nodes and a data set with three replicas
+* InfluxDB cluster: Resilient database made up of three meta nodes and a data set with three replicas
 
 ## Flow and logic ##
 
+1) User log in via a login name and a REQ and SUB socket are created with the REQ being connected to the load balancer
+2) Client sends a request to load balancer with its name so that a ZMQ topic can be created 
+3) Server is notified of a new user
+4) A topic is created with the users name that the SUB socket in the client subscribes to
+5) A entry is created in Influx with the new users name
+
+* One on one chat: 
+1) When sending a message, the client sends a JSON to the server containing information about who the message is going to and the contents of the message
+2) Influx saves this data for both the sender and receiver
+3) The message is then forwarded to the receiver via the SUB socket
+
+* Multichat:
+1) A client creates the group using the REQ socket which contains the names of everyone in the group and a group name
+3) Influx saves the group name and everyone in the group to a seperate measurement than the message storage 
+4) All users in the chat are notified that they have been added
+5) When sending a message, a user uses the REQ socket to send a JSON containing the group name and the message to be sent
+6) Each message in the chat is saved to each users personal message storage in Influx  
+7) The server queries for all the users in the group and forwards the message to each individual user via their own SUB socket
+
 ## Failure mode analysis
 
-## Future design improvements ##
-
+* Mailbox architecture for messages
+* Load balancer
+    * Problem: Clients have a single point of communication and in the case of failure will lead to the app crashing
+    * Tentative solution: Vertically scale load balancer or use RDNS with servers
+* Server
+    * Problem: Can tolerate up to 2 failures 
+    * Tentative solution: Add more machines
+InfluxDB cluster
+    * Problem: Can tolerate up to 2 failures per shard
+    * Tentative solution: Increase number of meta nodes and shard replica sets
 
 
 
