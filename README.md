@@ -49,6 +49,10 @@
 6) Each message in the chat is saved to each users personal message storage in Influx  
 7) The server queries for all the users in the group and forwards the message to each individual user via their own SUB socket
 
+## Encryption
+
+Since we have adopted a mailbox model for delivering messages (both individual and group messages), it was simple to encrypt messages. Each message is encrypted with the recipient's public key (which is generated when a user is created and in a database.) Since group messages are really just a number of one-to-one messages with our data model, we can encrypt messages with different public keys and all users can all decode with their own private key. The encryption library we used was pycrypto, and the encryption scheme we used to generate the key pair was RSA.
+
 ## Failure mode analysis
 
 * Mailbox architecture for messages
