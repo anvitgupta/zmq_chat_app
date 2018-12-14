@@ -91,7 +91,7 @@ def writeToDatabase(sender, recipient, msg, isGroup, current_db):
         # Find all the members in this group
         group_members = current_db.query(
             "SELECT member from msg_groups WHERE id='" + str(recipient) + "'").get_points()
-
+        print "Recipient " + str(recipient) + " has members: " + str(group_members)
         # Write this message in each of the members' mailboxes
         for val in group_members:
             mailbox_entries.append({
@@ -104,7 +104,7 @@ def writeToDatabase(sender, recipient, msg, isGroup, current_db):
                 }
             })
 
-    current_db.write_points(mailbox_entries)
+        current_db.write_points(mailbox_entries)
 
 
 def sendMessage(command, isGroup, current_db):
