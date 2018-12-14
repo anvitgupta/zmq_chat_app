@@ -1,5 +1,5 @@
 <head>
-    <title>Results</title>
+    <title>Chat</title>
 </head>
  
 <style>
@@ -20,11 +20,31 @@
         color: #ffffff;
         font-size: 2.5em;
     }
-    #inputMessages{
+    #readMessages{
+        height: 600px;
+        max-height: 100px;
         margin: auto;
         overflow-y: scroll;
         width: 70%;
         background-color: #ffffff;
+    }
+    #inputMessages{
+        width: 70%;
+    }
+    input {
+        margin: auto;
+        display: block;
+    }
+    button {
+        width: 10%; 
+        background-color: #4CAF50; /* Green */
+        border: none;   
+        color: white;
+        padding: 10px 10px 10px 10px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 16px;
     }
 </style>
 
@@ -35,18 +55,18 @@
         <table>
             <thead>
                 <tr>
-                    <th>Time</th>
-                    <th>Value</th>
+                    <th>From</th>
+                    <th>Message</th>
                 </tr>
             </thead>
             <tbody>
                 {% for row in rows %}
                 <tr>
                     <td>
-                        {{row.time}}
+                        {{row['from']}}
                     </td>
                     <td>
-                        {{row.value}}
+                        {{row['msg']}}
                     </td>
                 </tr>
                 {% endfor %}
@@ -55,7 +75,11 @@
     </div>
 
     <div id="inputMessages">
-        <p>Hi</p>
+        <form>
+            <input type="text" name="inputMessage" placeholder="Your message goes here..." size="60">
+            <a href=# id=sendButton><button type = "button" id="send" >Send</button></a>
+        </form>
+        
     </div>
 
 
