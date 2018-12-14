@@ -48,7 +48,7 @@ def send_thread(req_socket):
             req["type"] = "SEND_GROUP_MESSAGE"
             req["recipient"] = resp.strip()
 
-            resp = raw_input("Enter the names of the users you would like in the group, not including"
+            resp = raw_input("Enter the names of the users you would like in the group, including"
                              + " yourself, separated by the pipe symbol (|): ")
             req["members"] = resp.split("|")
 

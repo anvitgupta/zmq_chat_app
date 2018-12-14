@@ -59,13 +59,11 @@ def createGroup(command, current_db):
 
 def writeToDatabase(sender, recipient, msg, isGroup, current_db):
 
-    mailbox_entries = []
-
     # If this is a direct message
     if not isGroup:
 
         # Write this message in the sender's mailbox
-        mailbox_entries.append({
+        current_db.write_points([{
             'measurement': 'msgs',
             'fields': {
                 'from': sender,
@@ -73,10 +71,10 @@ def writeToDatabase(sender, recipient, msg, isGroup, current_db):
                 'msg': msg,
                 'chatname': recipient
             }
-        })
+        }])
 
         # Write this message in the recipient's mailbox
-        mailbox_entries.append({
+        current_db.write_points([{
             'measurement': 'msgs',
             'fields': {
                 'from': sender,
@@ -84,17 +82,16 @@ def writeToDatabase(sender, recipient, msg, isGroup, current_db):
                 'msg': msg,
                 'chatname': sender
             }
-        })
+        }])
 
     # This is a group chat
     else:
         # Find all the members in this group
         group_members = current_db.query(
             "SELECT member from msg_groups WHERE id='" + str(recipient) + "'").get_points()
-        print "Recipient " + str(recipient) + " has members: " + str(group_members)
         # Write this message in each of the members' mailboxes
         for val in group_members:
-            mailbox_entries.append({
+            current_db.write_points([{
                 'measurement': 'msgs',
                 'fields': {
                     'from': sender,
@@ -102,10 +99,12 @@ def writeToDatabase(sender, recipient, msg, isGroup, current_db):
                     'msg': msg,
                     'chatname': recipient
                 }
-            })
+            }])
+    
+    print "Wrote message: " + str(msg) + " to database."
 
-        print mailbox_entries
-        current_db.write_points(mailbox_entries)
+
+
 
 
 def sendMessage(command, isGroup, current_db):
@@ -150,36 +149,44 @@ def sendMessage(command, isGroup, current_db):
 
 
 def main():
-    print "Starting messaging server now..."
+    try:
+        print "Starting messaging server now..."
 
-    # Create a queue of our Influx instances
-    queue = deque([mydb1, mydb2, mydb3])
+        # Create a queue of our Influx instances
+        queue = deque([mydb1, mydb2, mydb3])
 
-    while True:
-        # Round robin select the next Influx instance to use
-        current_db = queue.popleft()
-        queue.append(current_db)
+        while True:
+            # Round robin select the next Influx instance to use
+            current_db = queue.popleft()
+            queue.append(current_db)
 
-        message = reply_socket.recv_json()
-        print "Received a message: " + str(message)
+            message = reply_socket.recv_json()
+            print "Received a message: " + str(message)
 
-        if message["type"] == "CREATE_USER":
-            createUser(message, current_db)
-        elif message["type"] == "CREATE_GROUP":
-            createGroup(message, current_db)
-        elif message["type"] == "SEND_DIRECT_MESSAGE":
-            sendMessage(message, False, current_db)
-        elif message["type"] == "SEND_GROUP_MESSAGE":
-            sendMessage(message, True, current_db)
-        else:
-            print "Invalid command type specified."
-            reply_socket.send_json({"success": False})
-            continue
+            if message["type"] == "CREATE_USER":
+                createUser(message, current_db)
+            elif message["type"] == "CREATE_GROUP":
+                createGroup(message, current_db)
+            elif message["type"] == "SEND_DIRECT_MESSAGE":
+                sendMessage(message, False, current_db)
+            elif message["type"] == "SEND_GROUP_MESSAGE":
+                sendMessage(message, True, current_db)
+            else:
+                print "Invalid command type specified."
+                reply_socket.send_json({"success": False})
+                continue
 
-        reply_socket.send_json({"success": True})
+            reply_socket.send_json({"success": True})
 
-        time.sleep(1)
-        pub_socket.send_json({"topic": "varun"})
+            time.sleep(1)
+            pub_socket.send_json({"topic": "varun"})
+    except KeyboardInterrupt:
+        print "exiting"
+    finally:
+        reply_socket.close()
+        pub_socket.close()
+        context.term()
+
 
 
 if __name__ == "__main__":
