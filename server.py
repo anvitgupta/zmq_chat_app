@@ -47,14 +47,13 @@ def createGroup(command, current_db):
         current_db.write_points(new_group)
 
     for member in members:
-        if member != members[0]:
-            message = [{
-                'topic': member,
-                'type': 'NEW_GROUP',
-                'members': list(filter(lambda x: x != member, members)),
-                'name': group_name
-            }]
-            pub_socket.send_json(message)
+        message = [{
+            'topic': member,
+            'type': 'NEW_GROUP',
+            'members': list(filter(lambda x: x != member, members)),
+            'name': group_name
+        }]
+        pub_socket.send_json(message)
 
 
 def writeToDatabase(sender, recipient, msg, isGroup, current_db):
