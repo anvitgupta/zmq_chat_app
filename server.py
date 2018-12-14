@@ -87,7 +87,7 @@ def writeToDatabase(sender, recipient, msg, isGroup, current_db):
     else:
         # Find all the members in this group
         group_members = current_db.query(
-            "SELECT member from msg_groups WHERE id='" + str(recipient) + "'").get_points()
+            "SELECT DISTINCT member from msg_groups WHERE id='" + str(recipient) + "'").get_points()
         # Write this message in each of the members' mailboxes
         for val in group_members:
             current_db.write_points([{
@@ -130,7 +130,7 @@ def sendMessage(command, isGroup, current_db):
     else:
         print "Sending a group message..."
         group_members = current_db.query(
-            "SELECT member from msg_groups WHERE id='" + str(recipient) + "'").get_points()
+            "SELECT DISTINCT member from msg_groups WHERE id='" + str(recipient) + "'").get_points()
         for val in group_members:
             message = {
                 'topic': val['member'],
