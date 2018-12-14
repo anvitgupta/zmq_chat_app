@@ -1,0 +1,41 @@
+<head>
+    <title>Results</title>
+</head>
+ 
+<style>
+@import url(http://fonts.googleapis.com/css?family=Amatic+SC:700);
+body {
+    text-align: center;
+}
+h1 {
+    font-family: 'Amatic SC', cursive;
+    font-weight: normal;
+    color: #8ac640;
+    font-size: 2.5em;
+}
+</style>
+
+<body>
+    <h1>{{topic}}</h1>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Time</th>
+                <th>Value</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in rows %}
+            <tr>
+                <td>
+                    {{row.time}}
+                </td>
+                <td>
+                    {{row.value}}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>

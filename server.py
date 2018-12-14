@@ -1,5 +1,5 @@
-import zmq
 import time
+import zmq
 from collections import deque
 from influxdb import client as influxdb
 
