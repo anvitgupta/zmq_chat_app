@@ -1,6 +1,7 @@
 import sys
 import zmq
 import threading
+import os
 
 SERVER_IP = "ec2-54-164-205-229.compute-1.amazonaws.com"
 
@@ -16,10 +17,9 @@ PORT = int(PORT)
 ctx = zmq.Context()
 req_socket = ctx.socket(zmq.REQ)
 sub_socket = ctx.socket(zmq.SUB)
-groups = []
-# Thread to listen for new messages
 
-def listen_thread(sub_socket):
+# Thread to listen for new messages
+def listen_thread(sub_socket, groups):
     while True:
         resp = sub_socket.recv_json()
         resp = resp[0] if type(resp) == list else resp
@@ -32,13 +32,13 @@ def listen_thread(sub_socket):
             print "Received new message from {} in group {}: {}".format(
                 resp["from"], resp["group"], resp["msg"])
         elif resp.get("type") == "NEW_GROUP":
-            global groups.append(resp["name"])
+            groups.append(resp["name"])
             print "Created a new group {} with members {}".format(resp["name"], resp["members"])
         else:
             print "Invalid message from server: {}".format(resp)
 
 
-def send_thread(req_socket):
+def send_thread(req_socket, groups):
     while True:
         req = {"sender": username}
         resp = raw_input("Would you like to send your message to a new group(0), an existing group(1),"
@@ -61,14 +61,16 @@ def send_thread(req_socket):
             if resp.get("success") is True:
                 print "Successfully created group {}".format(req["recipient"])
             else:
-                sys.exit("we failed")
+                print "Failed to create group {}".format(req["recipient"])
+                continue
         elif resp.strip()[0] == "1":
             resp = raw_input("What group would you like to send your message to? ")
             req["type"] = "SEND_GROUP_MESSAGE"
-            if resp.strip() in global groups:
+            if resp.strip() in groups:
                 req["recipient"] = resp.strip()
             else:
-                sys.exit("You are not a member of that group.")
+                print "You are not a member of that group."
+                continue
         elif resp.strip()[0] == "2":
             resp = raw_input("Who would you like to send your message to? ")
             req["type"] = "SEND_DIRECT_MESSAGE"
@@ -79,17 +81,17 @@ def send_thread(req_socket):
 
         resp = raw_input("Enter the message you'd like to send:\n")
         req["msg"] = resp.strip()
-        print req
+        # print req
         req_socket.send_json(req)
         resp = req_socket.recv_json()
         if resp.get("success") is True:
             print "Successfully sent message to {}".format(req["recipient"])
         else:
-            sys.exit("we failed")
+            print "Failed to send message to {}".format(req["recipient"])
 
 
 if __name__ == "__main__":
-
+    groups = []
     print "Connecting to message server..."
     req_socket.connect("tcp://{}:{}".format(SERVER_IP, PORT))
     print "Subscribing to message server..."
@@ -103,7 +105,7 @@ if __name__ == "__main__":
     else:
         sys.exit("we failed")
 
-    listen = threading.Thread(target=listen_thread, args=(sub_socket, ))
-    send = threading.Thread(target=send_thread, args=(req_socket, ))
+    listen = threading.Thread(target=listen_thread, args=(sub_socket, groups, ))
+    send = threading.Thread(target=send_thread, args=(req_socket, groups, ))
     listen.start()
     send.start()
