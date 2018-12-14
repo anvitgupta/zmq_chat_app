@@ -103,7 +103,7 @@ def writeToDatabase(sender, recipient, msg, isGroup, current_db):
                     'chatname': recipient
                 }
             })
-
+            print mailbox_entries
         current_db.write_points(mailbox_entries)
 
 
@@ -142,9 +142,9 @@ def sendMessage(command, isGroup, current_db):
             }
             messages.append(message)
 
-    print messages
+    #print messages
     for message in messages:
-        print message
+        print "sending message: " + message
         pub_socket.send_json(message)
 
 
