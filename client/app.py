@@ -16,8 +16,9 @@ PORT = int(PORT)
 ctx = zmq.Context()
 req_socket = ctx.socket(zmq.REQ)
 sub_socket = ctx.socket(zmq.SUB)
-
+groups = []
 # Thread to listen for new messages
+
 def listen_thread(sub_socket):
     while True:
         resp = sub_socket.recv_json()
