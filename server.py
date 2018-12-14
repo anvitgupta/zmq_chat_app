@@ -1,6 +1,8 @@
+import base64
 import time
 import zmq
 from collections import deque
+from Crypto.PublicKey import RSA
 from influxdb import client as influxdb
 
 print "A"
@@ -26,10 +28,14 @@ print "C"
 pub_socket = context.socket(zmq.PUB)
 pub_socket.bind("tcp://*:9001")
 print "D"
+users = {}
 
 
 def createUser(command, current_db):
+    username = command["username"]
+    public_key = RSA.importKey(command["key"])
     print "Adding a user"
+    users[username] = public_key
 
 
 def createGroup(command, current_db):
@@ -99,11 +105,8 @@ def writeToDatabase(sender, recipient, msg, isGroup, current_db):
                     'chatname': recipient
                 }
             }])
-    
+
     print "Wrote message: " + str(msg) + " to database."
-
-
-
 
 
 def sendMessage(command, isGroup, current_db):
@@ -122,8 +125,7 @@ def sendMessage(command, isGroup, current_db):
         message = {
             'topic': recipient,
             'type': 'NEW_DIRECT_MESSAGE',
-            'from': sender,
-            'msg': msg,
+            'from': sender
         }
         messages.append(message)
     # If a group message
@@ -136,13 +138,15 @@ def sendMessage(command, isGroup, current_db):
                 'topic': val['member'],
                 'type': 'NEW_GROUP_MESSAGE',
                 'from': sender,
-                'group': recipient,
-                'msg': msg
+                'group': recipient
             }
             messages.append(message)
 
-    #print messages
+    # print messages
     for message in messages:
+        print "encrypting message for user " + str(message['topic'])
+        message['msg'] = users[message['topic']].encrypt(msg)
+        message['msg'] = base64.b64encode(message['msg'])
         print "sending message: " + str(message)
         pub_socket.send_json(message)
 
@@ -185,7 +189,6 @@ def main():
         reply_socket.close()
         pub_socket.close()
         context.term()
-
 
 
 if __name__ == "__main__":

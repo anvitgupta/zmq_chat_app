@@ -1,7 +1,9 @@
+import base64
 import sys
 import zmq
 import threading
-import os
+from Crypto import Random
+from Crypto.PublicKey import RSA
 
 SERVER_IP = "ec2-54-164-205-229.compute-1.amazonaws.com"
 
@@ -18,6 +20,10 @@ ctx = zmq.Context()
 req_socket = ctx.socket(zmq.REQ)
 sub_socket = ctx.socket(zmq.SUB)
 
+PRIVATE_KEY = RSA.generate(256*4, Random.new().read)
+PUBLIC_KEY = PRIVATE_KEY.publickey()
+
+
 # Thread to listen for new messages
 def listen_thread(sub_socket, groups):
     while True:
@@ -27,10 +33,11 @@ def listen_thread(sub_socket, groups):
             continue
 
         if resp.get("type") == "NEW_DIRECT_MESSAGE":
-            print "Received new message from {}: {}".format(resp["from"], resp["msg"])
+            print "Received new message from {}: {}".format(
+                resp["from"], decrypt_message(resp["msg"]))
         elif resp.get("type") == "NEW_GROUP_MESSAGE":
             print "Received new message from {} in group {}: {}".format(
-                resp["from"], resp["group"], resp["msg"])
+                resp["from"], resp["group"], decrypt_message(resp["msg"]))
         elif resp.get("type") == "NEW_GROUP":
             groups.append(resp["name"])
             print "Created a new group {} with members {}".format(resp["name"], resp["members"])
@@ -38,11 +45,17 @@ def listen_thread(sub_socket, groups):
             print "Invalid message from server: {}".format(resp)
 
 
+def decrypt_message(encoded_encrypted_msg, privatekey):
+    decoded_encrypted_msg = base64.b64decode(encoded_encrypted_msg)
+    decoded_decrypted_msg = privatekey.decrypt(decoded_encrypted_msg)
+    return decoded_decrypted_msg
+
+
 def send_thread(req_socket, groups):
     while True:
         req = {"sender": username}
-        resp = raw_input("Would you like to send your message to a new group(0), an existing group(1),"
-                         + " or individual(2)? ")
+        resp = raw_input("Would you like to send your message to a new group(0),"
+                         + " an existing group(1), or individual(2)? ")
         if resp.strip()[0] == "0":
             resp = raw_input("What is the name of the group you would like to create? ")
             req["type"] = "SEND_GROUP_MESSAGE"
@@ -98,7 +111,11 @@ if __name__ == "__main__":
     sub_socket.connect("tcp://{}:{}".format(SERVER_IP, PORT + 1))
     sub_socket.setsockopt(zmq.SUBSCRIBE, "")
 
-    req_socket.send_json({"type": "CREATE_USER", "username": username})
+    req_socket.send_json({
+        "type": "CREATE_USER",
+        "username": username,
+        "key": PUBLIC_KEY.exportKey("PEM")
+    })
     resp = req_socket.recv_json()
     if resp.get("success") is True:
         print "Successfully connected as user {}".format(username)
