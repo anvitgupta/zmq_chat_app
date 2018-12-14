@@ -181,8 +181,6 @@ def main():
 
             reply_socket.send_json({"success": True})
 
-            time.sleep(1)
-            pub_socket.send_json({"topic": "varun"})
     except KeyboardInterrupt:
         print "exiting"
     finally:
