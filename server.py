@@ -145,7 +145,7 @@ def sendMessage(command, isGroup, current_db):
 
     #print messages
     for message in messages:
-        print "sending message: " + message
+        print "sending message: " + str(message)
         pub_socket.send_json(message)
 
 
