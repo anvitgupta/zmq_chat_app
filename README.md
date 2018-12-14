@@ -18,7 +18,7 @@
 
 ## Architecture ##
 
-* 
+![Architecture](https://github.com/vu-resilient-distributed-18/team-dark/blob/master/Capture.JPG)
 
 
 
