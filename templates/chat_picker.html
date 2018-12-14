@@ -1,0 +1,116 @@
+<head>
+    <title>Welcome to Dark Messenger!</title>
+
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+    <script type=text/javascript>
+        $(function() {
+            $('a#individual').bind('click', function() {
+                // show the div
+                $("#black").css("visibility", "visible");
+                // set the form action to individual message
+                $('.doInput').attr('action', '{{ url_for('indiv')}}');
+            });
+            return false;
+        });
+        $(function() {
+            $('a#newGroup').bind('click', function() {
+                $("#black").css("visibility", "visible");
+                // set the form action to individual message
+                $('.doInput').attr('action', '{{ url_for('grp')}}');
+            });
+            return false;
+        });
+        $(function() {
+            $('a#existingGroup').bind('click', function() {
+                $("#black").css("visibility", "visible");
+                // set the form action to individual message
+                $('.doInput').attr('action', '{{ url_for('grp')}}');
+            });
+            return false;
+        });
+    </script>
+</head>
+
+<style>
+    @import url(http://fonts.googleapis.com/css?family=Amatic+SC:700);
+    body {
+        text-align: center;
+        background-color:black;
+    }
+    h1 {
+        font-family: 'Amatic SC', cursive;
+        font-weight: normal;
+        color: #ffffff;
+        font-size: 5.0em;
+    }
+    h3 {
+        font-family: 'Amatic SC', cursive;
+        font-weight: normal;
+        color: #ffffff;
+        font-size: 2.5em;
+    }
+    h4 {
+        font-family: 'Amatic SC', cursive;
+        font-weight: normal;
+        color: #ffffff;
+        font-size: 1.5em;
+    }
+    input[type=text] {
+        width: 10%;
+        padding: 12px 20px;
+        margin: 8px 0;
+        display: inline-block;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-sizing: border-box;
+    }
+
+    input[type=submit] {
+        width: 10%;
+        background-color: #4CAF50;
+        color: white;
+        padding: 14px 20px;
+        margin: 8px 0;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+    button {
+        background-color: #4CAF50; /* Green */
+        border: none;   
+        color: white;
+        padding: 10px 100px 10px 100px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 16px;
+    }
+    #black {
+        visibility: hidden;
+    }
+</style>
+
+
+<body>
+
+    <h1>Welcome to Dark Messenger!</h1>
+    <h3>Welcome {{user}}!</h3>
+    <h4>Would you like to message an individual, create a group, or message an existing group?</h4>
+
+
+    <br>
+    <a href=# id=individual><button type = "button" id="individual" >Individual</button></a>
+    <a href=# id=newGroup><button type = "button">New Group</button></a>
+    <a href=# id=existingGroup><button type = "button">Existing Group</button></a>
+    <br>
+
+    <div id="black">
+        <h4>Enter the name of the chat: </h4>
+        <p id="result"></p>
+        <form class="doInput" action="{{ url_for('showChats')}}" method="POST">
+                <input type="text" name="Username" size="35"><br>
+                <input type="submit" value="Submit">
+        </form>
+    </div>
+
+</body>
