@@ -8,7 +8,7 @@
 * Encrypted group chat
 * In case of user disconnect, recovering all single user and group chat data for that user
 
-## Techstack ##
+## Tech Stack ##
 
 * Python
 * ZeroMQ
@@ -30,11 +30,11 @@
 
 ## Flow and logic ##
 
-1) User log in via a login name and a REQ and SUB socket are created with the REQ being connected to the load balancer
+1) User logs in via a login name and a REQ and SUB socket are created with the REQ being connected to the load balancer
 2) Client sends a request to load balancer with its name so that a ZMQ topic can be created 
 3) Server is notified of a new user
 4) A topic is created with the users name that the SUB socket in the client subscribes to
-5) A entry is created in Influx with the new users name
+5) An entry is created in Influx with the new users name
 
 * One on one chat: 
 1) When sending a message, the client sends a JSON to the server containing information about who the message is going to and the contents of the message
@@ -51,7 +51,7 @@
 
 ## Encryption
 
-Since we have adopted a mailbox model for delivering messages (both individual and group messages), it was simple to encrypt messages. Each message is encrypted with the recipient's public key (which is generated when a user is created and in a database.) Since group messages are really just a number of one-to-one messages with our data model, we can encrypt messages with different public keys and all users can all decode with their own private key. The encryption library we used was pycrypto, and the encryption scheme we used to generate the key pair was RSA.
+Since we have adopted a mailbox model for delivering messages (both individual and group messages), it was simple to encrypt messages. Each message is encrypted with the recipient's public key (which is generated client-side and sent to the server when a user is created, then stored in a database and in memory). Since group messages are really just a number of one-to-one messages(for the server) with our data model, we can encrypt messages with different public keys and all users can all decode with their own private key. The encryption library we used was pycrypto, and the encryption scheme we used to generate the key pair was RSA.
 
 ## Failure mode analysis
 
@@ -62,12 +62,7 @@ Since we have adopted a mailbox model for delivering messages (both individual a
 * Server
     * Problem: Can tolerate up to 2 failures 
     * Tentative solution: Add more machines
-InfluxDB cluster
+* InfluxDB cluster
     * Problem: Can tolerate up to 2 failures per shard
-    * Tentative solution: Increase number of meta nodes and shard replica sets
-
-
-
-
-
+    * Tentative solution: Increase number of meta nodes(too much overhead) and shard replica sets
 
